@@ -1,7 +1,6 @@
 from pytubefix import YouTube, exceptions
 import webbrowser
 import sys
-# from moviepy import VideoFileClip, AudioFileClip
 import os
 import re
 import subprocess
@@ -20,7 +19,7 @@ def main():
                     " Download it? (1) \n"
                     " Get the Thumbnail Link? (2) \n"
                     " (1/2): "
-                    )
+                    ).strip()
 
             action = choice(user_action)
             if action == "1":
@@ -49,10 +48,8 @@ def validate_video_link(link):
 
 def choice(choice):
     while True:
-        if choice.strip() == "1":
-            return "1"
-        elif choice.strip() == "2":
-            return "2"
+        if choice in ["1", "2"]:
+            return choice
         else:
             print("Please input either 1 or 2")
             continue
@@ -65,7 +62,7 @@ def download_video(video):
         format = input(
             " Video only, audio only, or both? \n"
             " (1/2/3): ").strip()
-        if format == "1" or format == "2" or format == "3":
+        if format in ["1", "2", "3"]:
             break
         else:
             print("Please input either 1, 2, or 3")
@@ -78,7 +75,7 @@ def download_video(video):
             " Somewhere else? (2) \n"
             " (1/2): "
             ).strip()
-        if path == "1" or path == "2":
+        if path in ["1", "2"]:
             break
         else:
             print("Please input either 1 or 2")
