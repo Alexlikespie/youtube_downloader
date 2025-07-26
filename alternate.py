@@ -20,11 +20,8 @@ def main():
                     " Get the Thumbnail Link? (2) \n"
                     " (1/2): "
                     ).strip()
-            if user_action not in ["1", "2"]:
-                print("Please input either 1 or 2")
-                continue
 
-            action = user_action
+            action = choice(user_action)
             if action == "1":
                 download_video(video)
                 break
@@ -47,6 +44,21 @@ def validate_video_link(link):
     except exceptions.RegexMatchError:
         print("Please input a valid YouTube URL")
         return None
+    except exceptions.BotDetection:
+        print("Please Generate a new token by running 'po_token_generator.py'")
+        sys.exit(1)
+        
+
+
+def choice(choice):
+    while True:
+        if choice in ["1", "2"]:
+            return choice
+        else:
+            print("Please input either 1 or 2")
+            continue
+
+
 
 
 def download_video(video):
@@ -74,13 +86,14 @@ def download_video(video):
             continue
         
     if format == "1":
+        
         stream = (
-        video.streams
-            .filter(adaptive=True, only_video=True, file_extension="mp4")
+            video.streams.filter(file_extension="mp4")
             .order_by("resolution")
             .desc()
             .first()
-        )
+            )
+        
 
         if path == "1":
             stream.download()
@@ -94,7 +107,7 @@ def download_video(video):
                     print("Invalid path. Please try again.")
                     continue
     elif format == "2":
-        stream = video.streams.filter(adaptive=True, only_audio=True).first()
+        stream = video.streams.filter(only_audio=True).first()
         if path == "1":
             stream.download()
         elif path == "2":
@@ -114,8 +127,6 @@ def download_video(video):
             pass
 
     print("Download Complete!")
-    print(video.streams.filter(adaptive=True, only_video=True, file_extension="mp4").order_by("resolution").desc().first())
-
     
     
 def safe_filename(name):
@@ -126,17 +137,13 @@ def combine_audio_video(video, path=os.getcwd()):
     
     print("Combining audio and video...")
     
-
-    audio_stream = video.streams.filter(adaptive=True, only_audio=True).first()
-    
-    video_stream = (
-    video.streams
-    .filter(adaptive=True, only_video=True, file_extension="mp4")
-    .order_by("resolution")
-    .desc()
-    .first()
-    )
-
+    try:
+        audio_stream = video.streams.filter(only_audio=True).first()
+        video_stream = video.streams.filter(file_extension="mp4").order_by("resolution").desc().first()
+    except exceptions.BotDetection:
+        print(
+            "Bot Detection Triggered; Please generate a new token by running 'po_token_generator.py'")
+        sys.exit(1)
 
     if not audio_stream or not video_stream:
         print("Could not find suitable audio or video streams.")
