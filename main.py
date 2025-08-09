@@ -81,42 +81,36 @@ def download_video(video):
             .desc()
             .first()
         )
-
         if path == "1":
             stream.download()
         elif path == "2":
-            while True:
-                custom_path = input("Enter the path where you would like to save: ").strip()
-                try:
-                    stream.download(custom_path)
-                    break
-                except Exception:
-                    print("Invalid path. Please try again.")
-                    continue
+            stream.download(output_path=custom_path())
+            
     elif format == "2":
         stream = video.streams.filter(adaptive=True, only_audio=True).first()
         if path == "1":
             stream.download()
         elif path == "2":
-            while True:
-                custom_path = input("Enter the path where you would like to save: ").strip()
-                try:
-                    stream.download(custom_path)
-                    break
-                except Exception:
-                    print("Invalid path. Please try again.")
-                    continue
-    elif format.strip() == "3":
+            stream.download(output_path=custom_path())
+            
+    elif format == "3":
         if path == "1":
             combine_audio_video(video)
         elif path == "2":
-            # TODO
-            pass
+            combine_audio_video(video, path=custom_path())
+            
 
     print("Download Complete!")
-    print(video.streams.filter(adaptive=True, only_video=True, file_extension="mp4").order_by("resolution").desc().first())
+    # print(video.streams.filter(adaptive=True, only_video=True, file_extension="mp4").order_by("resolution").desc().first())
 
-    
+def custom_path():
+    while True:
+        custom_path = input("Enter the path where you would like to save: ").strip()
+        if os.path.exists(custom_path):
+            return custom_path
+        else:
+            print("Invalid path. Please try again.")
+            continue
     
 def safe_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
@@ -127,6 +121,10 @@ def combine_audio_video(video, path=os.getcwd()):
     print("Combining audio and video...")
     
 
+    # can use try except to handle exceptions.BotDetection
+    # can try the program again with po token true or false
+    # can ask user to regenerate po token
+    
     audio_stream = video.streams.filter(adaptive=True, only_audio=True).first()
     
     video_stream = (
