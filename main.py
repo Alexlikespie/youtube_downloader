@@ -87,7 +87,7 @@ def download_video(video):
             stream.download(output_path=custom_path())
             
     elif format == "2":
-        stream = video.streams.filter(adaptive=True, only_audio=True).first()
+        stream = video.streams.filter(only_audio=True, mime_type="audio/mp4").order_by("abr").desc().first()
         if path == "1":
             stream.download()
         elif path == "2":
@@ -125,7 +125,7 @@ def combine_audio_video(video, path=os.getcwd()):
     # can try the program again with po token true or false
     # can ask user to regenerate po token
     
-    audio_stream = video.streams.filter(adaptive=True, only_audio=True).first()
+    audio_stream = video.streams.filter(only_audio=True, mime_type="audio/mp4").order_by("abr").desc().first()
     
     video_stream = (
     video.streams
