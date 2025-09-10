@@ -92,6 +92,10 @@ def download_video(video):
             stream.download()
         elif path == "2":
             stream.download(output_path=custom_path())
+        # can implement a feature to convert the audio to mp3 after downloading?
+        # use ffmpeg command
+        # ffmpeg -i input.m4a -c:v copy -c:a libmp3lame -q:a [0-9 quality 0 highest 9 lowest] output.mp3
+
             
     elif format == "3":
         if path == "1":
