@@ -3,39 +3,42 @@ import webbrowser
 import sys
 import os
 import re
-import subprocess
 import ffmpeg # using ffmpeg library for dist to avoid ffmpeg system install requirement
+
+
+additional_params = {
+    # can add additional params here later
+    '-v': 'video only',
+    '-a': 'audio only',
+    '-b': 'both audio and video',
+    '-mp3': 'convert audio to mp3 after download',
+    '-p': 'custom path for download',
+    '-t': 'get thumbnail link'
+    # implement mutually exclusive constraints later
+}
+
+
+
 
 def main():
     try:
         while True:
-            link = input("Paste a YouTube video link here: ")
+            user_input = input("Paste a YouTube video link here: ")
+            global user_args
+            user_args = user_input.split()
             # parse input params here
             # create docs
-            video = validate_video_link(link)
+            video = validate_video_link(user_args[0])
             if video:
                 break
 
         while True:
-            user_action = input(
-                    " What would you like to do with the video? \n"
-                    " Download it? (1) \n"
-                    " Get the Thumbnail Link? (2) \n"
-                    " (1/2): "
-                    ).strip()
-            if user_action not in ["1", "2"]:
-                print("Please input either 1 or 2")
-                continue
-
-            action = user_action
-            if action == "1":
-                download_video(video)
-                break
-            elif action == "2":
+            if '-t' in user_args:
                 webbrowser.open(get_thumbnail(video))
                 break
             else:
-                continue
+                download_video(video)
+                break
 
         sys.exit(0)
     except EOFError:
@@ -52,31 +55,11 @@ def validate_video_link(link):
         return None
 
 
-def download_video(video):
-    while True:
-        format = input(
-            " Video only, audio only, or both? \n"
-            " (1/2/3): ").strip()
-        if format in ["1", "2", "3"]:
-            break
-        else:
-            print("Please input either 1, 2, or 3")
-            continue
-
-    while True:
-        path = input(
-            " Where would you like to save this download? \n"
-            " In the current directory? (1) \n"
-            " Somewhere else? (2) \n"
-            " (1/2): "
-            ).strip()
-        if path in ["1", "2"]:
-            break
-        else:
-            print("Please input either 1 or 2")
-            continue
-        
-    if format == "1":
+def download_video(video, type="Video", path=os.getcwd()):
+    if "-p" in user_args:
+        path = custom_path()
+    
+    if "-v" in user_args:
         stream = (
         video.streams
             .filter(adaptive=True, only_video=True, file_extension="mp4")
@@ -84,26 +67,28 @@ def download_video(video):
             .desc()
             .first()
         )
-        if path == "1":
-            stream.download()
-        elif path == "2":
-            stream.download(output_path=custom_path())
-            
-    elif format == "2":
-        stream = video.streams.filter(only_audio=True, mime_type="audio/mp4").order_by("abr").desc().first()
-        if path == "1":
-            stream.download()
-        elif path == "2":
-            stream.download(output_path=custom_path())
-            
-    elif format == "3":
-        if path == "1":
-            combine_audio_video(video)
-        elif path == "2":
-            combine_audio_video(video, path=custom_path())
-            
+        stream.download(output_path=path)
+        sys.exit(0)
+    
+    elif "-a" in user_args:
+        stream = (
+            video.streams.filter(only_audio=True, mime_type="audio/mp4")
+            .order_by("abr")
+            .desc()
+            .first()
+        )
+        input_path = stream.download(output_path=path)
+        if "-mp3" in user_args:
+            output_file = os.path.join(path, f"{safe_filename(video.title)}.mp3")
+            convert_m4a_to_mp3(input_path, output_file)
+            if os.path.exists(input_path):
+                os.remove(input_path)
+        sys.exit(0)
+    
+    elif "-b" in user_args:
+        combine_audio_video(video, output_path=path)
+        sys.exit(0)
 
-    print("Download Complete!")
     # print(video.streams.filter(adaptive=True, only_video=True, file_extension="mp4").order_by("resolution").desc().first())
 
 def custom_path():
@@ -119,7 +104,7 @@ def safe_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
 
 
-def combine_audio_video(video, path=os.getcwd()):
+def combine_audio_video(video, output_path):
     
     print("Combining audio and video...")
     
@@ -146,7 +131,7 @@ def combine_audio_video(video, path=os.getcwd()):
     audio_path = audio_stream.download(filename_prefix="audio_")
     video_path = video_stream.download(filename_prefix="video_")
 
-    output_path = os.path.join(path, f"{safe_filename(video.title)}.mp4")
+    output_path = os.path.join(output_path, f"{safe_filename(video.title)}.mp4")
     
     video_input = ffmpeg.input(video_path)
     audio_input = ffmpeg.input(audio_path)
@@ -156,7 +141,7 @@ def combine_audio_video(video, path=os.getcwd()):
         output_path,
         vcodec='copy',
         acodec='copy',
-        y=None
+        n=None
     ).run()
 
     # Clean up
@@ -176,14 +161,16 @@ def get_thumbnail(video):
 
 # implement this function
 def convert_m4a_to_mp3(input_file, output_file):
-    command = [
-        "ffmpeg",
-        "-i", input_file,
-        "-c:a", "libmp3lame",
-        "-q:a", "0",
-        output_file
-    ]
-    subprocess.run(command, check=True)
+    
+    input = ffmpeg.input(input_file)
+    ffmpeg.output(
+        input,
+        output_file,
+        acodec='libmp3lame',
+        **{'q:a': 0},
+        n=None
+    ).run()
 
 if __name__ == "__main__":
     main()
+    
