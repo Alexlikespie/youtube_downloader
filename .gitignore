@@ -5,4 +5,8 @@ __pycache__/
 *.mp4
 *.m4a
 *.mp3
+*.bat
+*.txt
 build/
+dist_old/
+old/
